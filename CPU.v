@@ -12,7 +12,7 @@ module CPU(
 	output [7:0] LEDs;
 	
 	reg clk;
-	reg [12:0] program_memory [0:127];
+	reg [12:0] program_memory [0:255];
 	
 	always 
 		#1 clk <= ~clk;
@@ -57,6 +57,11 @@ module CPU(
 	wire [2:0] wr_addr_d;
 	wire branch_d;
 	wire [7:0] branch_addr_d;
+	wire [7:0] immediate;
+	wire immediate_en;
+	
+	wire [7:0] op_a;
+	wire [7:0] op_b;
 	
 	wire flg_gr; //from alu
 	wire flg_eq; //from alu
@@ -73,10 +78,13 @@ module CPU(
     .alu_op_a_addr_o(alu_op_a_addr), 
     .alu_op_b_addr_o(alu_op_b_addr), 
     .alu_opcode_o(alu_opcode), 
+	 .rd_en_o(rd_en),
     .wr_en_o(wr_en_d), 
     .wr_addr_o(wr_addr_d), 
     .branch_en_o(branch_d), 
-    .branch_addr_o(branch_addr_d)
+    .branch_addr_o(branch_addr_d),
+	 .immediate_o(immediate),
+	 .immediate_en_o(immediate_en)
     );
 	 
 	assign rd_addr_a = alu_op_a_addr; //read a from regfile
@@ -86,8 +94,11 @@ module CPU(
 	assign branch_en = branch_d & ((alu_opcode[0] & flg_gr) | (~alu_opcode[0] & flg_eq)); 
 	assign branch_addr = branch_addr_d;
 	
+	assign op_a = rd_a | (immediate_en ? immediate : 8'b00000000);
+	assign op_b = rd_b;
+	
 	always @ (posedge clk)
-		decode_latch <= {alu_opcode, rd_a, rd_b, wr_en_d, wr_addr_d};
+		decode_latch <= {alu_opcode, op_a, op_b, wr_en_d, wr_addr_d};
 
 	
 //-----------------------------------	
@@ -142,13 +153,28 @@ module CPU(
     .wr_addr_i(wr_addr), 
     .rd_a_o(rd_a), 
     .rd_b_o(rd_b), 
-    .wr_en_i(wr_en)
+    .wr_en_i(wr_en),
+	 .rd_en_i(rd_en)
     );
 	 
-	
+	reg [7:0] i;
 
 	initial begin
-		program_memory[0] = 13'b0011000000001;	
+		program_memory[0] = 13'b1010000001001;
+		program_memory[1] = 13'b0000000000000;
+		program_memory[2] = 13'b0110001010001;
+		program_memory[3] = 13'b0000000000000;
+		program_memory[4] = 13'b0110001000011;
+		program_memory[5] = 13'b0110001010010;
+		program_memory[6] = 13'b0111000000000;
+		program_memory[7] = 13'b1000000000010;
+		program_memory[8] = 13'b0110010000011;
+		
+		for (i=9; i<255; i=1+i)
+			begin
+				program_memory[i] <= 13'b0000000000000;
+			end
+		
 		clk = 0;
 		fetch_latch = 0;
 		decode_latch = 0;

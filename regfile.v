@@ -14,7 +14,8 @@ module regfile(
 	wr_addr_i,
 	rd_a_o,
 	rd_b_o,
-	wr_en_i
+	wr_en_i,
+	rd_en_i
     );
 	 
 	 input clk_i;
@@ -25,6 +26,7 @@ module regfile(
 	 output [7:0] rd_a_o;
 	 output [7:0] rd_b_o;
 	 input wr_en_i;
+	 input rd_en_i;
 	 
 	 reg [7:0] register_1;
 	 reg [7:0] register_2;
@@ -50,7 +52,8 @@ module regfile(
 				endcase
 		end
 		
-	assign rd_a_o = (rd_addr_a_i == 3'b001) ? register_1 :
+	assign rd_a_o = ~rd_en_i ? 8'b00000000 :
+						(rd_addr_a_i == 3'b001) ? register_1 :
 						(rd_addr_a_i == 3'b010) ? register_2 :
 						(rd_addr_a_i == 3'b011) ? register_3 :
 						(rd_addr_a_i == 3'b100) ? register_4 :
@@ -59,7 +62,8 @@ module regfile(
 						(rd_addr_a_i == 3'b111) ? register_7 :
 						8'b00000000;
 
-	assign rd_b_o = (rd_addr_b_i == 3'b001) ? register_1 :
+	assign rd_b_o = ~rd_en_i ? 8'b00000000 :
+						(rd_addr_b_i == 3'b001) ? register_1 :
 						(rd_addr_b_i == 3'b010) ? register_2 :
 						(rd_addr_b_i == 3'b011) ? register_3 :
 						(rd_addr_b_i == 3'b100) ? register_4 :
