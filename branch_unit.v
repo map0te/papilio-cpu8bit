@@ -5,33 +5,33 @@
 //updated every positive edge of the clock
 
 module branch_unit(
-	rst_pc_i,
-	pc_o,
-	branch_en_i,
-	branch_addr_i,
-	clk_i
+   rst_pc_i,
+   pc_o,
+   branch_en_i,
+   branch_addr_i,
+   clk_i
     );
 
-	input rst_pc_i;
-	output [7:0] pc_o;
-	input branch_en_i;
-	input [7:0] branch_addr_i;
-	input clk_i;
+   input rst_pc_i;
+   output [7:0] pc_o;
+   input branch_en_i;
+   input [7:0] branch_addr_i;
+   input clk_i;
 
-	reg [7:0] pc;
-	
-	always @ (posedge clk_i)
-		begin
-			if (~rst_pc_i)
-				pc = branch_en_i ? branch_addr_i : (pc + 1'b1);
-			else
-				pc = 8'b00000000;
-		end
-			
-	assign pc_o = pc;
-	
-	initial
-		pc = 0;
-		
-		
+   reg [7:0] pc;
+
+   always @ (posedge clk_i)
+      begin
+         if (~rst_pc_i)
+            pc = branch_en_i ? branch_addr_i : (pc + 1'b1);
+         else
+            pc = 8'b00000000;
+      end
+
+   assign pc_o = pc;
+
+   initial
+      pc = 0;
+
+
 endmodule
