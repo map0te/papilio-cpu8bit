@@ -23,7 +23,7 @@ module instruction_decoder(
    output wr_en_o;
    output [2:0] wr_addr_o;
    output branch_en_o;
-   output [7:0] branch_addr_o;
+   output [6:0] branch_addr_o;
    output [7:0] immediate_o;
    output immediate_en_o;
 
@@ -35,7 +35,7 @@ module instruction_decoder(
    assign wr_en_o = ~instruction_i[12] | (instruction_i[12:9] ==4'b1010) ? 1'b1 : 1'b0;
    assign wr_addr_o = instruction_i[2:0];
    assign branch_en_o = (instruction_i[12:10] == 3'b100) ? 1'b1 : 1'b0;
-   assign branch_addr_o = instruction_i[7:0];
+   assign branch_addr_o = instruction_i[6:0];
    assign immediate_o = {2'b00, instruction_i[8:3]};
    assign immediate_en_o = (instruction_i[12:9] == 4'b1010) ? 1'b1 : 1'b0;
 

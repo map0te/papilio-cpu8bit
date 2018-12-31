@@ -13,9 +13,9 @@ module branch_unit(
     );
 
    input rst_pc_i;
-   output [7:0] pc_o;
+   output [6:0] pc_o;
    input branch_en_i;
-   input [7:0] branch_addr_i;
+   input [6:0] branch_addr_i;
    input clk_i;
 
    reg [7:0] pc;

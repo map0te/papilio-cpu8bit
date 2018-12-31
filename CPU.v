@@ -2,21 +2,139 @@
 `include "alu.v"
 `include "regfile.v"
 `include "branch_unit.v"
+`include "instruction_decoder.v"
+
 
 module CPU(
    switches,
-   LEDs
+   LEDs,
+   stick,
+   fpga_clk
    );
 
    input [7:0] switches;
    output [7:0] LEDs;
+   input [3:0] stick;
+   input fpga_clk;
 
-   reg clk;
-   reg [12:0] program_memory [0:255];
+   wire f_clk;
+   wire clk;
+   reg [12:0] program_memory [0:127];
+   reg [25:0] counter;
 
-   always
-      #1 clk <= ~clk;
+   always @ (posedge f_clk)
+         counter <= counter + 1;
 
+   assign f_clk = fpga_clk;
+   assign clk = counter[23];
+
+//-----------------------------------
+//          State Machine
+//-----------------------------------
+
+   parameter IDLE = 3'b000;
+   parameter WRITE_LINE_L = 3'b001;
+   parameter WRITE_LINE_U = 3'b010;
+   parameter WRITE_IDLE = 3'b011;
+   parameter INCR_DECR_PC = 3'b100;
+   parameter INCR_IDLE = 3'b101;
+   parameter RUN_CPU = 3'b110;
+   parameter RUN_CPU_IDLE = 3'b111;
+
+   reg [7:0] word_lower_half;
+   reg [4:0] word_upper_half;
+   reg [6:0] write_pc;
+   reg [2:0] state;
+   reg rst_pc;
+
+   wire [7:0] reg_3;
+
+
+   always @ (posedge counter[20])
+      case(state)
+
+         IDLE:
+            begin
+               if (~stick[2] | ~stick[3])
+                  state <= INCR_DECR_PC;
+               else if (~stick[1])
+                  state <= WRITE_LINE_L;
+               else if (~stick[0])
+                  state <= RUN_CPU;
+               else
+                  state <= IDLE;
+
+               rst_pc <= 1;
+            end
+
+         WRITE_LINE_L:
+            begin
+               if (stick[1] == 0)
+                  state <= WRITE_LINE_L;
+               else
+                  state <= WRITE_LINE_U;
+
+               word_lower_half <= switches;
+            end
+
+         WRITE_LINE_U:
+            begin
+               if (stick[1] == 0)
+                  state <= WRITE_IDLE;
+               else
+                  state <= WRITE_LINE_U;
+
+               word_upper_half <= switches[4:0];
+            end
+
+         WRITE_IDLE:
+            begin
+               if (stick[1] == 0)
+                  state <= WRITE_IDLE;
+               else
+                  state <= IDLE;
+
+               program_memory[write_pc] <= {word_upper_half, word_lower_half};
+            end
+
+         INCR_DECR_PC:
+            begin
+               if (stick[2] == 0)
+                  write_pc <= write_pc - 1;
+               else if (stick[3] == 0)
+                  write_pc <= write_pc + 1;
+
+               state <= INCR_IDLE;
+            end
+
+         INCR_IDLE:
+            begin
+               if (~stick[2] | ~stick[3])
+                  state <= INCR_IDLE;
+               else
+                  state <= IDLE;
+            end
+
+         RUN_CPU:
+            begin
+               if (~stick[1])
+                  state <= RUN_CPU_IDLE;
+               else
+                  state <= RUN_CPU;
+               rst_pc <= 0;
+            end
+
+         RUN_CPU_IDLE:
+            begin
+               if (~stick[1])
+                  state <= RUN_CPU_IDLE;
+               else
+                  state <= IDLE;
+            end
+
+      endcase
+
+   assign LEDs = rst_pc ? write_pc : reg_3; //program memory if not running
 
 //-----------------------------------
 //          Fetch Stage
@@ -24,10 +142,9 @@ module CPU(
 
    reg [12:0] fetch_latch;
 
-   wire [7:0] pc;
+   wire [6:0] pc;
    wire branch_en;
-   wire [7:0] branch_addr;
-   reg rst_pc = 1'b0;
+   wire [6:0] branch_addr;
    wire [12:0] instruction;
 
    branch_unit branch_unit (
@@ -154,31 +271,21 @@ module CPU(
     .rd_a_o(rd_a),
     .rd_b_o(rd_b),
     .wr_en_i(wr_en),
-    .rd_en_i(rd_en)
+    .rd_en_i(rd_en),
+    .reg_3_o(reg_3)
     );
 
-   reg [7:0] i;
+   reg [8:0] i;
 
    initial begin
-      program_memory[0] = 13'b1010000001001;
-      program_memory[1] = 13'b0000000000000;
-      program_memory[2] = 13'b0110001010001;
-      program_memory[3] = 13'b0000000000000;
-      program_memory[4] = 13'b0110001000011;
-      program_memory[5] = 13'b0110001010010;
-      program_memory[6] = 13'b0111000000000;
-      program_memory[7] = 13'b1000000000010;
-      program_memory[8] = 13'b0110010000011;
-
-      for (i=9; i<255; i=1+i)
+      for (i=0; i<128; i=1+i)
          begin
-            program_memory[i] <= 13'b0000000000000;
+            program_memory[i] = 13'b0000000000000;
          end
-
-      clk = 0;
       fetch_latch = 0;
       decode_latch = 0;
       execute_latch = 0;
+      write_pc = 0;
    end
 
 endmodule

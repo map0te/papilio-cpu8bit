@@ -15,7 +15,8 @@ module regfile(
    rd_a_o,
    rd_b_o,
    wr_en_i,
-   rd_en_i
+   rd_en_i,
+   reg_3_o
     );
 
     input clk_i;
@@ -27,6 +28,8 @@ module regfile(
     output [7:0] rd_b_o;
     input wr_en_i;
     input rd_en_i;
+
+    output [7:0] reg_3_o;
 
     reg [7:0] register_1;
     reg [7:0] register_2;
@@ -71,6 +74,8 @@ module regfile(
                   (rd_addr_b_i == 3'b110) ? register_6 :
                   (rd_addr_b_i == 3'b111) ? register_7 :
                   8'b00000000;
+
+   assign reg_3_o = register_3;
 
    initial begin
       register_1 = 8'b00000000;
